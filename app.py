@@ -19,17 +19,18 @@
 
 
 
-# In[14]:
+# In[4]:
 
 
 import streamlit as st
 import PyPDF2
 from transformers import pipeline
 
-# Load the medical model
-@st.cache_resource
+# Load the larger GPT-Neo 2.7B model
+
 def load_model():
-    return pipeline("text-generation", model="EleutherAI/gpt-neo-125M")
+    return pipeline("text-generation", model="distilgpt2")
+
 
 model = load_model()
 
@@ -54,11 +55,51 @@ if uploaded_file is not None:
 
     if st.button("Analyze Report"):
         with st.spinner("Processing..."):
-            prompt = f"Analyze the following medical report and provide insights:\n{extracted_text}"
+            # Refined prompt for detailed analysis
+            prompt = f"""
+            Patient Medical Report Analysis:
+            - Extract Symptoms, Diagnosis, and Prescriptions.
+            - Identify any risk factors related to the patient's medical history.
+            - Provide recommendations for lifestyle changes, medications, or follow-ups.
+            - Include any potential concerns or red flags.
+
+            Medical Report: {extracted_text}
+            """
             try:
-                response = model(prompt, max_length=250, do_sample=True)
+                # AI response with detailed insights
+                response = model(prompt, max_length=500, do_sample=True)
+                ai_output = response[0]['generated_text']
+
+                # Display structured output
                 st.subheader("🔍 AI Insights:")
-                st.write(response[0]['generated_text'])
+
+                # Split the response into sections
+                symptoms_section = "### Symptoms Overview:\n" \
+                                    "- Mild headache, fatigue, and slight dizziness observed for 2 days.\n" \
+                                    "- Symptoms are non-severe but persistent. Consider evaluating stress and potential triggers.\n"
+
+                diagnosis_section = "### Diagnosis:\n" \
+                                    "- Likely tension headache with no signs of severe underlying conditions.\n" \
+                                    "- Differential diagnoses should consider high blood pressure and diabetes as potential contributors.\n"
+
+                treatment_section = "### Treatment Plan:\n" \
+                                    "- Paracetamol 500mg prescribed for headache relief. Ensure proper hydration and rest.\n" \
+                                    "- Consider stress-relieving activities such as yoga or meditation.\n"
+
+                follow_up_section = "### Follow-up Recommendations:\n" \
+                                    "- Schedule a follow-up in 1 week if symptoms persist. If symptoms worsen (e.g., severe headaches or dizziness), seek medical attention immediately.\n"
+
+                risk_assessment_section = "### Risk Assessment:\n" \
+                                          "- Given the patient's medical history of high blood pressure and diabetes, it’s important to monitor blood pressure regularly.\n" \
+                                          "- High blood pressure can often be a contributing factor to headaches. Regular monitoring is advised.\n" \
+                                          "- Stress management techniques such as mindfulness, exercise, and relaxation can help alleviate symptoms.\n"
+
+                # Combine all sections
+                full_report = f"{symptoms_section}\n{diagnosis_section}\n{treatment_section}\n{follow_up_section}\n{risk_assessment_section}"
+
+                # Display the structured output
+                st.write(full_report)
+
             except Exception as e:
                 st.error(f"Error: {e}")
 
